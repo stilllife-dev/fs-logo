@@ -3,6 +3,9 @@
 **FS//LOGO Professional** は、ロゴ制作におけるディテールを精査するために設計されたフォントセレクターです。
 ローカルフォントをブラウズし、グリフ（字形）の細部と併せて一覧するために設計されています。
 
+### 🖼 Preview
+<img width="2632" height="1542" alt="img" src="https://github.com/user-attachments/assets/8300cb3a-4778-4147-9814-7d3a4d4d2480" />
+
 ---
 
 ### 🚀 主な機能 / Features
