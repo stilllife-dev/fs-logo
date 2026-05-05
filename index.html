@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja" class="light">
+<head>
+    <meta charset="UTF-8">
+    <title>FS // Logo Professional - Clean Slate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { mono: { 50: '#fafafa', 100: '#f5f5f5', 200: '#e5e5e5', 800: '#262626', 900: '#171717', 1000: '#000000' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { cursor: default; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #404040; }
+
+        .font-card { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+        .dark .font-card { border-bottom: 1px solid #171717; }
+        .font-card:hover { background: #fafafa; }
+        .dark .font-card:hover { background: #0a0a0a; }
+
+        #magnifier {
+            position: fixed; pointer-events: none;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: #fff;
+            display: none; z-index: 9999;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0,0,0,0.25);
+        }
+        .dark #magnifier { background: #000; box-shadow: 0 0 60px rgba(0,0,0,0.5); }
+        #magnifier-canvas { position: absolute; transform-origin: 0 0; white-space: nowrap; width: 10000px; text-align: right; }
+
+        .guideline { position: absolute; left: 0; right: 0; border-top: 1px dashed; pointer-events: none; visibility: hidden; z-index: 10; }
+        .guideline-x { border-color: rgba(0, 0, 0, 0.1); top: 35%; }
+        .dark .guideline-x { border-color: rgba(255, 255, 255, 0.1); }
+        .guideline-base { border-color: rgba(0, 0, 0, 0.25); top: 72%; }
+        .dark .guideline-base { border-color: rgba(255, 255, 255, 0.25); }
+        .show-lines .guideline { visibility: visible; }
+
+        .weight-tag { cursor: pointer; border: 1px solid transparent; transition: 0.1s; padding: 2px 6px; }
+        .weight-tag.active { border: 1px solid #000; font-weight: bold; background: #000; color: #fff; }
+        .dark .weight-tag.active { border: 1px solid #fff; background: #fff; color: #000; }
+
+        .range-wrapper { position: relative; width: 100%; display: flex; align-items: center; }
+        .range-dot {
+            position: absolute; left: 14.28%;
+            width: 4px; height: 4px; background: #ccc; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; top: 50%;
+        }
+
+        .ui-label { font-size: 9px; font-weight: 700; opacity: 0.3; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; text-align: center; }
+
+        #themeToggle { width: 24px; height: 24px; border: 1px solid #e5e5e5; display: flex; overflow: hidden; transform: rotate(45deg); transition: 0.3s; }
+        .dark #themeToggle { border-color: #404040; }
+        #themeToggle div { width: 50%; height: 100%; }
+
+        #loadBtn { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); min-width: 110px; font-family: monospace; }
+        #loadBtn.syncing { min-width: 80px; opacity: 0.5; letter-spacing: 0.3em; }
+        #loadBtn.connected { 
+            min-width: 40px; height: 4px; padding: 0; border-radius: 2px; 
+            background: #000; border: none; color: transparent; 
+            margin-top: 12px;
+        }
+        .dark #loadBtn.connected { background: #fff; }
+
+        .btn-action { cursor: pointer; font-size: 8px; border: 1px solid #e5e5e5; padding: 1px 4px; border-radius: 2px; opacity: 0.5; transition: 0.2s; }
+        .btn-action:hover { opacity: 1; background: #000; color: #fff; border-color: #000; }
+        .dark .btn-action { border-color: #404040; }
+        .dark .btn-action:hover { background: #fff; color: #000; border-color: #fff; }
+
+        /* こっそり設置するクリアボタン */
+        #clearDataBtn {
+            position: fixed; bottom: 12px; left: 12px;
+            font-size: 8px; font-weight: 900; letter-spacing: 0.1em;
+            opacity: 0.1; transition: 0.3s; cursor: pointer;
+            z-index: 100;
+        }
+        #clearDataBtn:hover { opacity: 0.8; color: #ff0000; }
+    </style>
+</head>
+<body class="bg-white text-mono-900 dark:bg-mono-1000 dark:text-mono-100 overflow-hidden font-sans">
+
+<header class="h-24 border-b dark:border-mono-800 flex items-center justify-between px-6 bg-white/95 dark:bg-mono-1000/95 backdrop-blur-md z-50 relative">
+    <div class="flex items-center gap-10">
+        <h1 class="text-xl font-light italic tracking-[0.4em] opacity-70">FS//LOGO</h1>
+        <input type="text" id="previewInput" value="R,G,i,I,l&,0123" 
+               class="bg-transparent border border-mono-200 dark:border-mono-800 px-5 py-2 rounded-full w-80 text-lg outline-none focus:border-black dark:focus:border-white transition-all tabular-nums">
+    </div>
+    
+    <div class="flex items-center gap-8">
+        <div class="flex flex-col items-center">
+            <span class="ui-label">Size</span>
+            <input type="range" id="sizeSlider" min="20" max="250" value="90" class="w-28 accent-black dark:accent-white cursor-pointer">
+        </div>
+        <div class="flex flex-col items-center">
+            <span class="ui-label">Spacing <span id="spacingValue" class="opacity-100 ml-1 font-mono tracking-normal">0</span></span>
+            <div class="range-wrapper">
+                <input type="range" id="spacingSlider" min="-10" max="60" value="0" class="w-28 accent-black dark:accent-white cursor-pointer relative z-10">
+                <div class="range-dot"></div>
+            </div>
+        </div>
+        <div class="flex flex-col items-center">
+            <span class="ui-label">Lines</span>
+            <button id="lineToggle" class="w-10 h-5 border dark:border-mono-800 rounded-full text-[8px] uppercase font-bold hover:bg-mono-100 dark:hover:bg-mono-900 transition-all">Off</button>
+        </div>
+        <div class="flex flex-col items-center">
+            <span class="ui-label">Blur</span>
+            <button id="blurToggle" class="w-10 h-5 border dark:border-mono-800 rounded-full text-[8px] hover:bg-mono-100 dark:hover:bg-mono-900 transition-all font-bold">○</button>
+        </div>
+        <div class="flex flex-col items-center">
+            <span class="ui-label">Contrast</span>
+            <button id="themeToggle" class="hover:scale-110 active:scale-95 transition-all outline-none">
+                <div class="bg-black dark:bg-white"></div>
+                <div class="bg-white dark:bg-black"></div>
+            </button>
+        </div>
+        <div class="flex items-center gap-6 border-l pl-8 dark:border-mono-800 h-10">
+            <div class="flex flex-col items-center">
+                <span id="syncLabel" class="ui-label">Sync</span>
+                <button id="loadBtn" class="bg-black text-white dark:bg-white dark:text-black px-6 py-2 rounded-full font-light text-[9px] tracking-widest hover:opacity-80 active:scale-95 shadow-md outline-none">
+                    SYNC FONTS
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="flex">
+    <aside id="pinnedPanel" class="w-80 border-r dark:border-mono-800 bg-mono-50 dark:bg-mono-900 overflow-y-auto p-4 flex flex-col gap-4 shadow-inner relative">
+        <div class="flex justify-between items-center px-1">
+            <h3 class="text-[10px] font-black opacity-30 uppercase tracking-widest">Selected Items</h3>
+            <span id="pinnedCount" class="text-[10px] font-bold opacity-50 tabular-nums">0</span>
+        </div>
+        <div id="starredList" class="flex flex-col gap-4"></div>
+    </aside>
+
+    <main id="mainList" class="flex-1 overflow-y-auto relative bg-white dark:bg-mono-1000">
+        <div id="fontGrid" class="flex flex-col">
+            <div class="p-32 text-center opacity-10 font-light italic text-4xl tracking-[0.5em]">--- STANDBY ---</div>
+        </div>
+    </main>
+</div>
+
+<div id="clearDataBtn" onclick="clearAllData()">CLEAR ALL DATA</div>
+
+<div id="magnifier"><canvas id="magnifier-canvas"></canvas></div>
+
+<script>
+    const STORAGE_KEY = 'logo_pro_v9';
+    let allFontsGrouped = {};
+    let starred = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    let temporaryWeights = {};
+    let showLines = false;
+    let isBlurOn = false;
+
+    const previewInput = document.getElementById('previewInput');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const blurToggle = document.getElementById('blurToggle');
+    const spacingSlider = document.getElementById('spacingSlider');
+    const spacingValue = document.getElementById('spacingValue');
+    const lineToggle = document.getElementById('lineToggle');
+    const loadBtn = document.getElementById('loadBtn');
+    const syncLabel = document.getElementById('syncLabel');
+    const magnifier = document.getElementById('magnifier');
+    const magCanvas = document.getElementById('magnifier-canvas');
+    const magCtx = magCanvas.getContext('2d');
+
+    magCanvas.width = 520; magCanvas.height = 520;
+    magCanvas.style.width = '260px'; magCanvas.style.height = '260px';
+    magCtx.scale(2, 2);
+
+    const handleMagnifier = (e) => {
+        const target = e.target.closest('.preview-text');
+        if (!target || target.closest('#pinnedPanel')) { magnifier.style.display = 'none'; return; }
+        magnifier.style.display = 'block';
+        const radius = 130; const scale = 4;
+        magnifier.style.left = (e.clientX - radius) + 'px';
+        magnifier.style.top = (e.clientY - radius) + 'px';
+        const rect = target.getBoundingClientRect();
+        magCtx.clearRect(0, 0, 260, 260);
+        const style = window.getComputedStyle(target);
+        magCtx.font = `${style.fontSize.replace('px','') * scale}px ${style.fontFamily}`;
+        magCtx.letterSpacing = `${spacingSlider.value * scale}px`;
+        magCtx.fillStyle = document.documentElement.classList.contains('dark') ? '#fff' : '#000';
+        magCtx.filter = isBlurOn ? `blur(8px)` : `none`;
+        magCtx.textBaseline = 'middle';
+        magCtx.textAlign = 'right';
+        const xOffset = (rect.right - e.clientX) * scale;
+        magCtx.fillText(target.innerText, radius + xOffset, radius);
+    };
+
+    document.body.addEventListener('mousemove', handleMagnifier);
+    document.getElementById('themeToggle').onclick = () => document.documentElement.classList.toggle('dark');
+
+    blurToggle.onclick = () => {
+        isBlurOn = !isBlurOn;
+        blurToggle.innerText = isBlurOn ? '●' : '○';
+        updateStyles();
+    };
+
+    lineToggle.onclick = () => {
+        showLines = !showLines;
+        lineToggle.innerText = showLines ? 'On' : 'Off';
+        document.getElementById('mainList').classList.toggle('show-lines', showLines);
+    };
+
+    loadBtn.onclick = async () => {
+        if (loadBtn.classList.contains('connected')) return;
+        loadBtn.classList.add('syncing');
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?#';
+        const btnInterval = setInterval(() => {
+            let rnd = '';
+            for(let i=0; i<3; i++) rnd += chars[Math.floor(Math.random() * chars.length)];
+            loadBtn.innerText = `[ ${rnd} ]`;
+        }, 80);
+
+        setTimeout(async () => {
+            try {
+                const fonts = await window.queryLocalFonts();
+                allFontsGrouped = {};
+                fonts.forEach(f => {
+                    if (!allFontsGrouped[f.family]) allFontsGrouped[f.family] = [];
+                    allFontsGrouped[f.family].push(f);
+                });
+                clearInterval(btnInterval);
+                loadBtn.innerText = "--- READY ---";
+                setTimeout(() => {
+                    loadBtn.classList.remove('syncing');
+                    loadBtn.classList.add('connected');
+                    loadBtn.innerText = "";
+                    syncLabel.innerText = "●";
+                    render(true);
+                }, 800);
+            } catch (err) {
+                clearInterval(btnInterval);
+                loadBtn.innerText = "ERROR";
+                setTimeout(() => {
+                    loadBtn.classList.remove('syncing');
+                    loadBtn.innerText = "SYNC FONTS";
+                }, 2000);
+            }
+        }, 1200);
+    };
+
+    const copy = (txt) => {
+        navigator.clipboard.writeText(txt);
+    };
+
+    // --- クリア機能 ---
+    window.clearAllData = () => {
+        if(confirm("すべての選定データをリセットしますか？\n(スター情報とウェイト選択が消去されます)")){
+            localStorage.removeItem(STORAGE_KEY);
+            starred = {};
+            temporaryWeights = {};
+            render();
+            console.log("LocalStorage cleared.");
+        }
+    };
+
+    function createCard(family, variations, isPinned = false) {
+        const selectedPsName = starred[family] || temporaryWeights[family] || variations[0].postscriptName;
+        const size = isPinned ? 32 : sizeSlider.value;
+        const isStarred = starred.hasOwnProperty(family);
+
+        const weightButtons = variations.map(v => `
+            <button onclick="window.changeWeight('${family.replace(/'/g, "\\'")}', '${v.postscriptName}', ${isPinned})" 
+                    class="weight-tag text-[8px] rounded uppercase ${selectedPsName === v.postscriptName ? 'active' : 'opacity-40'}">
+                ${v.style || 'Regular'}
+            </button>
+        `).join('');
+
+        const displayText = isPinned ? 
+            previewInput.value.slice(0, 12) + (previewInput.value.length > 12 ? '...' : '') : 
+            previewInput.value;
+
+        return `
+            <div class="font-card p-6 flex flex-col gap-3 transition group ${isPinned ? 'bg-white dark:bg-mono-800 rounded-xl shadow-lg p-5 mb-2 border-none' : ''}">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-3">
+                        <span onclick="window.toggleStar('${family.replace(/'/g, "\\'")}', '${selectedPsName}')" 
+                              class="cursor-pointer text-sm ${isStarred ? 'text-black dark:text-white' : 'opacity-10'}">★</span>
+                        <div class="flex flex-col min-w-0 text-left">
+                            <span class="text-[9px] font-mono opacity-30 uppercase tracking-tighter truncate">${family}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold uppercase truncate max-w-[120px]">${family}</span>
+                                <button onclick="copy('${family.replace(/'/g, "\\'")}')" class="btn-action">COPY</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1 justify-end max-w-[160px]">
+                        ${weightButtons}
+                    </div>
+                </div>
+                <div class="preview-container py-3 overflow-visible whitespace-nowrap text-right tracking-tighter w-full"
+                     style="font-family: '${selectedPsName}', '${family}'; font-size: ${size}px; ${isPinned ? '' : 'filter: blur('+(isBlurOn ? 4 : 0)+'px); letter-spacing: '+spacingSlider.value+'px;'}">
+                    <div class="guideline guideline-x"></div>
+                    <div class="guideline guideline-base"></div>
+                    <span class="preview-text">${displayText}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function render(animate = false) {
+        const families = Object.keys(allFontsGrouped);
+        if (families.length === 0) return;
+        const grid = document.getElementById('fontGrid');
+        grid.innerHTML = families.map(name => createCard(name, allFontsGrouped[name], false)).join('');
+        
+        if (animate) {
+            const allElements = grid.querySelectorAll('.preview-text');
+            const limitedElements = Array.from(allElements).slice(0, 5);
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&#/%@';
+            limitedElements.forEach(el => {
+                const original = el.innerText;
+                let iter = 0;
+                const interval = setInterval(() => {
+                    if (iter >= 8) { clearInterval(interval); el.innerText = original; return; }
+                    let rnd = '';
+                    for (let i = 0; i < original.length; i++) rnd += chars[Math.floor(Math.random() * chars.length)];
+                    el.innerText = rnd;
+                    iter++;
+                }, 60);
+            });
+        }
+
+        const sKeys = Object.keys(starred);
+        document.getElementById('pinnedCount').innerText = sKeys.length;
+        document.getElementById('starredList').innerHTML = sKeys.map(name => {
+            return allFontsGrouped[name] ? createCard(name, allFontsGrouped[name], true) : '';
+        }).join('');
+    }
+
+    window.toggleStar = (family, psName) => {
+        if (starred[family]) delete starred[family];
+        else starred[family] = psName;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(starred));
+        render();
+    };
+
+    window.changeWeight = (family, psName, isPinned) => {
+        if (isPinned || starred[family]) {
+            starred[family] = psName;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(starred));
+        } else {
+            temporaryWeights[family] = psName;
+        }
+        render();
+    };
+
+    previewInput.oninput = () => render();
+    sizeSlider.oninput = () => updateStyles();
+    spacingSlider.oninput = () => {
+        spacingValue.innerText = spacingSlider.value;
+        updateStyles();
+    };
+
+    function updateStyles() {
+        const b = isBlurOn ? 4 : 0;
+        const s = spacingSlider.value;
+        const fs = sizeSlider.value;
+        document.querySelectorAll('#mainList .preview-container').forEach(el => {
+            el.style.filter = `blur(${b}px)`;
+            el.style.letterSpacing = `${s}px`;
+            el.style.fontSize = `${fs}px`;
+        });
+    }
+
+    const setHeights = () => {
+        const h = window.innerHeight - 96;
+        document.getElementById('pinnedPanel').style.height = h + 'px';
+        document.getElementById('mainList').style.height = h + 'px';
+    };
+    window.onresize = setHeights;
+    setHeights();
+</script>
+</body>
+</html>
