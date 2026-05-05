@@ -46,3 +46,5 @@
 4.  `Size` / `Spacing` / `Blur` などのコントローラーで、書体の「声色」を確認します。
 5.  気に入った書体は **★** を押してセレクト。サイドバーでウェイトを最終決定します。
 6.  **[COPY]** ボタンでフォント名をコピーし、デザイン制作ソフトへ。
+
+© 2026 stilllife / Produced by Sugawara "Finding your story with you."
