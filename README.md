@@ -1,6 +1,6 @@
 # FS//LOGO Professional
 
-**FS//LOGO Professional** は、ロゴ制作におけるディテールを精査するために設計されたフォントセレクターです。
+**FS//LOGO Professional** は、フォントセレクターです。
 ローカルフォントをブラウズし、グリフ（字形）の細部と併せて一覧するために設計されています。
 
 ### 🖼 Preview
